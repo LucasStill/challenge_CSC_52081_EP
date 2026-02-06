@@ -1,31 +1,43 @@
-# Student Gym Environment Challenge
+# Turbofan Engine Maintenance Challenge
 
-A simplified gym environment for educational reinforcement learning challenges. This package provides students with a standard gym interface while hiding internal implementation details.
+A reinforcement learning environment for optimizing turbofan engine maintenance. Students learn to balance engine longevity with maintenance costs using a standard gym interface.
 
-## Quick Start
+## Key Concepts
 
-### Prerequisites
+### Step Size and Observations
 
-- Python 3.8+
-- Git
-- Virtual environment (recommended)
+The environment uses a `step_size` parameter that determines how many flight observations are returned per `env.step()` call:
 
-### Installation
+- **step_size=10**: Each `env.step()` advances the simulation by 10 flights. Recommended to stay fixed for speed.  
+- **Returned observations**: A list of 'step_size' observation arrays, each representing sensor data from one flight
+- **Goal**: Learn optimal maintenance timing based on degradation patterns across multiple flights
 
-```bash
-# Clone the repository
-git clone <repository-url>
-cd challenge_CSC_52081_EP
+### Actions and Objectives
 
-# Create and activate virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+**Action Space (Discrete):**
+- `0`: Do nothing (continue normal operation)
+- `1`: Repair (reduce engine degradation, incurs maintenance cost)
+- `2`: Sell (terminate episode, receive sale reward based on remaining engine life)
 
-# Install dependencies
-pip install -r requirements.txt
+**Objective:** Maximize total reward by:
+- Prolonging engine lifetime through strategic repairs
+- Avoiding catastrophic failures
+- Selling at optimal time for maximum profit
 
-# Install the student client package
-pip install -e .
+## Configuration
+
+### .env File
+
+Create a `.env` file in your project root for automatic configuration:
+
+```env
+# Server configuration
+SERVER_URL=http://rlchallenge.orailix.com
+USER_TOKEN=your_student_token
+
+# Environment settings
+STEP_SIZE=10 # advised to keep it fixed for speed
+MAX_STEPS_PER_EPISODE=700
 ```
 
 ### Basic Usage
@@ -33,186 +45,87 @@ pip install -e .
 ```python
 from student_client import create_student_gym_env
 
-# SIMPLEST USAGE: Just call with no parameters!
-# It automatically loads from .env file or uses sensible defaults
-env = create_student_gym_env(user_token='student_token')
+# Automatically loads from .env file
+env = create_student_gym_env()
 
-# Use standard gym interface
+# Reset environment
 obs, info = env.reset()
 
+# Run episode
 for step in range(100):
-    # Choose action (0=do nothing, 1=repair, 2=sell)
+    # Choose action based on your policy
     action = env.action_space.sample()
     
-    # Take step in environment
-    obs, reward, terminated, truncated, info = env.step(action)
+    # Get next 10 flight observations
+    obs_list, reward, terminated, truncated, info = env.step(
+        action=action,
+        step_size=10,
+        return_all_states=True
+    )
     
-    if terminated:
-        print(f"Episode terminated at step {step}")
+    if terminated or truncated:
         break
 
 # Clean up
 env.close()
 ```
 
-
-## Features
-
-### Standard Gym Interface
-
-The student client provides a familiar gym interface:
-
-- `env.reset()` - Reset environment to initial state
-- `env.step(action)` - Take a step in the environment
-- `env.close()` - Clean up the environment
-
-### Observation Space
-
-- **Type**: Continuous
-- **Shape**: `(9,)`
-- **Content**: 7 sensor measurements + 1 flight phase + 1 timestep
-- **Sensors**: HPC_Tout, HP_Nmech, HPC_Tin, LPT_Tin, Fuel_flow, HPC_Pout_st, LP_Nmech, phase_type, timestep
-
-### Action Space
-
-- **Type**: Discrete(3)
-- **Actions**:
-  - `0`: Do nothing (continue operation)
-  - `1`: Repair (reduce degradation, with cost)
-  - `2`: Sell (terminate episode, get sale reward)
-
-## Using .env File (Automatic)
-
-The environment automatically loads from `.env` file if present. Just create a `.env` file in your project root:
-
-```env
-# Server configuration
-SERVER_URL=http://rlchallenge.orailix.com
-USER_TOKEN=student_token
-
-# Environment settings
-ENV_TYPE=DegradationEnv
-MAX_STEPS_PER_EPISODE=700
-AUTO_RESET=True
-TIMEOUT=30.0
-PROD=True
-```
-
-Then simply call:
-
-```python
-from student_client import create_student_gym_env
-
-# This automatically loads from .env file
-env = create_student_gym_env()
-```
-
-If no `.env` file is found, it uses sensible defaults and shows a helpful warning message.
-
-## Requirements
-
-### Dependencies
-
-The project requires the following Python packages:
-
-```
-numpy>=1.21.0
-gymnasium>=0.26.0
-httpx>=0.23.0
-pydantic>=1.9.0
-python-dotenv>=0.19.0
-```
-
-### Installation
-
-```bash
-# Install all dependencies
-pip install -r requirements.txt
-
-# Or install individually
-pip install numpy gymnasium httpx pydantic python-dotenv
-```
-
 ## Examples
 
-### Simple Random Policy
+### Simple Example
 
-```python
-from student_client import create_student_gym_env
+See `example/simple_example.py` for a complete working example with:
+- Environment setup
+- Action policy implementation
+- Data collection and analysis
+- Visualization of results
 
-def run_random_policy():
-    """Run a simple random policy for demonstration"""
-    
-    env = create_student_gym_env(
-        server_url='http://localhost:8001',
-        user_token='student_user'
-    )
-    
-    obs, info = env.reset()
-    total_reward = 0
-    
-    for step in range(100):
-        action = env.action_space.sample()
-        obs, reward, terminated, truncated, info = env.step(action)
-        total_reward += reward
-        
-        print(f"Step {step}: Reward={reward:.2f}, Total={total_reward:.2f}")
-        
-        if terminated or truncated:
-            print(f"Episode ended at step {step}")
-            break
-    
-    env.close()
-    return total_reward
+### Single Trajectory Analysis
 
-if __name__ == "__main__":
-    run_random_policy()
+For detailed trajectory analysis, see `example/single_trajectory.ipynb` which includes:
+- Step-by-step environment interaction
+- Observation analysis
+- Action timing visualization
+- Reward optimization strategies
+
+
+## Installation
+
+```bash
+# Clone repository
+git clone <repository-url>
+cd challenge_CSC_52081_EP
+
+# Install dependencies
+pip install -r requirements.txt
+pip install -e .
 ```
 
-### Training Loop
+## Observation Space
 
-```python
-from student_client import create_student_gym_env
+Each observation contains 9 sensor measurements:
+- HPC_Tout: High Pressure Compressor Temperature Outlet
+- HP_Nmech: High Pressure Shaft Mechanical Speed
+- HPC_Tin: High Pressure Compressor Temperature Inlet
+- LPT_Tin: Low Pressure Turbine Temperature Inlet
+- Fuel_flow: Fuel Flow Rate
+- HPC_Pout_st: High Pressure Compressor Pressure Outlet
+- LP_Nmech: Low Pressure Shaft Mechanical Speed
+- phase_type: Flight Phase Type
+- DTAMB: Temperature Difference
 
-def train_agent(num_episodes=10):
-    """Simple training loop example"""
-    
-    for episode in range(num_episodes):
-        env = create_student_gym_env(
-            server_url='http://rlchallenge.orailix.com',
-            user_token='student_user'
-        )
-        
-        obs, info = env.reset()
-        total_reward = 0
-        
-        for step in range(100):
-            # Random action for demonstration
-            action = env.action_space.sample()
-            
-            obs, reward, terminated, truncated, info = env.step(action)
-            total_reward += reward
-            
-            if terminated or truncated:
-                break
-        
-        print(f"Episode {episode + 1}: Total reward = {total_reward:.2f}")
-        env.close()
+## Learning Resources
 
-train_agent()
-```
-
-
-
-## License
-
-This project is for educational purposes only.
+- Start with `simple_example.py` to understand the basic interaction pattern
+- Use `single_trajectory.ipynb` for in-depth analysis of engine degradation
+- Implement your own policies in the same structure
+- Focus on action timing relative to degradation patterns
 
 ## Support
 
-For questions or issues, please contact your instructor or teaching assistant.
+For technical issues, contact thil (at) lix (dot) polytechnique (dot) fr
 
 ---
 
 **Version**: 1.0.0
-**Last Updated**: 2026
+**Focus**: Turbofan engine maintenance optimization
