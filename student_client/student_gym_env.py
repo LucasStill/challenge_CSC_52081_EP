@@ -435,7 +435,7 @@ class StudentGymEnv(gym.Env):
             }
 
             return (
-                final_observation,
+                np.array(final_observation),
                 reward,
                 self.terminated,
                 self.truncated,

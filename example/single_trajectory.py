@@ -4,7 +4,7 @@ from student_client import create_student_gym_env
 def main():
 
     step_size = 10
-    env = create_student_gym_env(step_size=step_size)
+    env = create_student_gym_env()
 
     # Reset environment to get initial observation
     obs, info = env.reset()

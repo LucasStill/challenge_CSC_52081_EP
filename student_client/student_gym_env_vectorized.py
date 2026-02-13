@@ -767,13 +767,14 @@ def create_student_gym_env_vectorized(
 
     max_num_envs = 4
     if num_envs > max_num_envs:
+        num_envs = max_num_envs
         print(f'Warning: max number of environments is 8, setting num_envs to this value ({max_num_envs})')
 
     config = StudentGymEnvVectorizedConfig(
         server_url=config_server_url,
         user_token=config_user_token,
         env_type=config_env_type,
-        num_envs=max_num_envs,
+        num_envs=num_envs,
         max_steps_per_episode=config_max_steps,
         auto_reset=config_auto_reset,
         timeout=config_timeout,

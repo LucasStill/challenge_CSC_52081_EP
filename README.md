@@ -2,6 +2,10 @@
 
 A reinforcement learning environment for optimizing turbofan engine maintenance. Students learn to balance engine longevity with maintenance costs using a standard gym interface.
 
+
+## Latest updates:
+- 13/02: fixed some token access and np format in single_trajectory example
+
 ## Key Concepts
 
 ### Step Size and Observations
@@ -63,6 +67,8 @@ for step in range(100):
 # Clean up
 env.close()
 ```
+
+/!\ Versioning: when intializing your environment, you will be prompted with your operating version, and perhaps if you require to update your environment with the latest version. 
 
 ## Examples
 

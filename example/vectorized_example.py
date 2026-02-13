@@ -5,8 +5,6 @@ def main():
 
     env = create_student_gym_env_vectorized(
         num_envs=4,
-        step_size=10,
-        user_token='vec1'
     )
 
     print(f"Environment created with {env.num_envs} parallel environments")
