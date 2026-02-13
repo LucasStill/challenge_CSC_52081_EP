@@ -37,9 +37,10 @@ class StudentGymEnvVectorizedConfig(BaseModel):
     auto_reset: bool = True
     timeout: float = 30.0
     prod: bool = True  # Production mode: hide internal information
-    step_size: int = 1  # Number of simulation steps to compute per environment step
+    step_size: int = 10  # Number of simulation steps to compute per environment step
     return_all_states: bool = True  # Return observations for all steps in step_size
 
+CLIENT_VERSION = "0.1"
 
 class StudentGymEnvVectorized(gym.Env):
     """
@@ -103,6 +104,9 @@ class StudentGymEnvVectorized(gym.Env):
             }
         )
 
+        # Check for client updates
+        self._check_for_updates()
+
         # Initialize session
         self.session_id = session_id
         self._initialize_session()
@@ -129,6 +133,47 @@ class StudentGymEnvVectorized(gym.Env):
         logger.info(f"StudentGymEnvVectorized initialized with {self.num_envs} environments")
         logger.info(f"Episode IDs: {self.episode_ids}")
 
+    def _check_for_updates(self):
+        """Check if a newer version of the client is available"""
+        try:
+            response = self.client.get("/api/v1/version")
+            response.raise_for_status()
+            version_data = response.json()
+            latest_version = version_data.get('latest_version', '0.0')
+
+            # Compare versions
+            client_major, client_minor = self._parse_version(CLIENT_VERSION)
+            latest_major, latest_minor = self._parse_version(latest_version)
+
+            # Check if update is available
+            if (latest_major > client_major) or (latest_major == client_major and latest_minor > client_minor):
+                update_message = (
+                    f"🚀 A new version ({latest_version}) of the student client is available! "
+                    f"You are currently using version {CLIENT_VERSION}. "
+                    f"Please update for the best experience."
+                )
+                print(f"\n🔵 {update_message}\n")
+                logger.info(update_message)
+            elif latest_major == client_major and latest_minor == client_minor:
+                logger.info(f"Client is up to date (version {CLIENT_VERSION})")
+            else:
+                logger.info(f"Client version {CLIENT_VERSION} is newer than latest {latest_version}")
+
+        except httpx.HTTPStatusError as e:
+            logger.debug(f"Could not check for updates: {e}")
+        except Exception as e:
+            logger.debug(f"Version check failed: {e}")
+
+    def _parse_version(self, version: str) -> Tuple[int, int]:
+        """Parse version string into major and minor components"""
+        try:
+            parts = version.split('.')
+            major = int(parts[0]) if len(parts) > 0 else 0
+            minor = int(parts[1]) if len(parts) > 1 else 0
+            return major, minor
+        except Exception:
+            return 0, 0
+
     def _initialize_session(self):
         """Initialize or reuse a user session"""
         if not self.session_id:
@@ -139,6 +184,17 @@ class StudentGymEnvVectorized(gym.Env):
                 session_data = response.json()
                 self.session_id = session_data['session_id']
                 logger.info(f"Created new session: {self.session_id}")
+            except httpx.HTTPStatusError as e:
+                # Extract server error message for better user feedback
+                try:
+                    error_detail = e.response.json().get('detail', str(e))
+                    user_message = f"Session creation failed: {error_detail}"
+                    logger.error(f"Failed to create session: {error_detail}")
+                    raise RuntimeError(user_message)
+                except Exception:
+                    # Fallback if we can't parse JSON response
+                    logger.error(f"Failed to create session: {e}")
+                    raise RuntimeError(f"Could not create session: {str(e)}")
             except Exception as e:
                 logger.error(f"Failed to create session: {e}")
                 raise RuntimeError(f"Could not create session: {str(e)}")

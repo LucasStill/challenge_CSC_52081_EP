@@ -32,7 +32,7 @@ def main():
 
         rewards.append(reward)
 
-        # Update total timesteps - server advances by step_size but returns only final observation
+        # Update total timesteps - server advances by step_size and returns all observations
         total_timesteps += step_size
 
         # Print progress every step
